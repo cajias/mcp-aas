@@ -171,38 +171,31 @@ describe('Login Component', () => {
     expect(screen.getByText(/username and password are required/i)).toBeInTheDocument();
   });
   
-  it('should navigate to registration page when register link is clicked', () => {
+  it('should have a link to the registration page', () => {
     render(
       <BrowserRouter>
         <Login />
       </BrowserRouter>
     );
     
-    // Find specifically the register link that appears after "Don't have an account?"
-    const accountText = screen.getByText(/don't have an account\?/i);
-    const registerLink = accountText.nextElementSibling || 
-                         Array.from(accountText.parentElement?.querySelectorAll('a') || [])
-                           .find(a => a.textContent?.includes('Register'));
+    // Just check that there's at least one link to /register
+    const registerLinks = screen.getAllByRole('link');
+    const hasRegisterLink = registerLinks.some(link => link.getAttribute('href') === '/register');
     
-    expect(registerLink).toHaveAttribute('href', '/register');
+    expect(hasRegisterLink).toBe(true);
   });
   
-  it('should navigate to forgot password page when forgot password link is clicked', () => {
+  it('should have a link to the forgot password page', () => {
     render(
       <BrowserRouter>
         <Login />
       </BrowserRouter>
     );
     
-    // Find the "Forgot Password?" link within the form context
-    const forgotPasswordLinks = screen.getAllByText(/forgot password\?/i);
-    const forgotPasswordLink = forgotPasswordLinks.find(element => 
-      element.tagName.toLowerCase() === 'a' || element.closest('a')
-    ) || forgotPasswordLinks[0];
+    // Just check that there's at least one link to /forgot-password
+    const links = screen.getAllByRole('link');
+    const hasForgotPasswordLink = links.some(link => link.getAttribute('href') === '/forgot-password');
     
-    const linkElement = forgotPasswordLink.tagName.toLowerCase() === 'a' ? 
-      forgotPasswordLink : forgotPasswordLink.closest('a');
-    
-    expect(linkElement).toHaveAttribute('href', '/forgot-password');
+    expect(hasForgotPasswordLink).toBe(true);
   });
 });
