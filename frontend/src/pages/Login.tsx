@@ -1,39 +1,58 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import authService from '../services/auth';
+import { useAuth } from '../services/AuthContext';
+
+interface LocationState {
+  verified?: boolean;
+}
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
+  const location = useLocation();
   
+  useEffect(() => {
+    // Check for verification state passed from registration
+    const state = location.state as LocationState;
+    if (state?.verified) {
+      setSuccess('Email verified successfully! Please login with your credentials.');
+    }
+  }, [location]);
+  
+  // Import auth context
+  const { login } = useAuth();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
-    if (!email || !password) {
-      setError('Email and password are required');
+    if (!username || !password) {
+      setError('Username and password are required');
       return;
     }
     
     try {
       setLoading(true);
       
-      // In a real app, this would be an API call
-      console.log('Logging in with:', { email, password });
+      // Use the Auth context to login
+      const success = await login(username, password);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Store auth token (in a real app, this would come from the API)
-      localStorage.setItem('token', 'mock-token');
-      
-      // Redirect to dashboard
-      navigate('/dashboard');
-    } catch (err) {
-      setError('Login failed. Please check your credentials.');
+      if (success) {
+        console.log('Login successful');
+        
+        // Redirect to dashboard
+        navigate('/dashboard');
+      } else {
+        setError('Login failed. Please check your credentials.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please check your credentials.');
       console.error('Login error:', err);
     } finally {
       setLoading(false);
@@ -52,14 +71,20 @@ const Login: React.FC = () => {
             </div>
           )}
           
+          {success && (
+            <div className="success-message" style={{ backgroundColor: '#e8f5e9', padding: '10px', marginBottom: '20px', borderRadius: '4px', color: '#2e7d32' }}>
+              {success}
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="username">Username or Email</label>
               <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -86,6 +111,7 @@ const Login: React.FC = () => {
           
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
             <p>Don&apos;t have an account? <Link to="/register">Register</Link></p>
+            <p><Link to="/forgot-password">Forgot Password?</Link></p>
             <p><Link to="/">Back to Home</Link></p>
           </div>
         </div>
