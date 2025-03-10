@@ -17,6 +17,7 @@ const Dashboard: React.FC = () => {
     }
   }, [isAuthenticated, user, navigate]);
 
+  useEffect(() => {
     // Fetch tools
     const fetchTools = async () => {
       try {
@@ -65,7 +66,7 @@ const Dashboard: React.FC = () => {
     };
     
     fetchTools();
-  }, [navigate]);
+  }, []);
   
   const handleLaunchTool = (toolId: string) => {
     console.log(`Launching tool: ${toolId}`);
