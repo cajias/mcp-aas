@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import PageLayout from '../components/layout/PageLayout';
 
 const Home: React.FC = () => {
   return (
-    <div className="container">
+    <PageLayout>
       <header style={{ textAlign: 'center', marginBottom: '40px' }}>
         <h1 style={{ fontSize: '2.5rem' }}>MCP as a Service</h1>
         <p style={{ fontSize: '1.2rem' }}>
@@ -40,7 +41,7 @@ const Home: React.FC = () => {
       <footer style={{ textAlign: 'center', marginTop: '40px', padding: '20px', borderTop: '1px solid var(--border-color)' }}>
         <p>&copy; 2025 MCP-aaS</p>
       </footer>
-    </div>
+    </PageLayout>
   );
 };
 

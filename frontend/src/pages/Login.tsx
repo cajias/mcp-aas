@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import authService from '../services/auth';
 import { useAuth } from '../services/AuthContext';
+import PageLayout from '../components/layout/PageLayout';
 
 interface LocationState {
   verified?: boolean;
+  from?: string;
 }
 
 const Login: React.FC = () => {
@@ -46,8 +48,12 @@ const Login: React.FC = () => {
       if (success) {
         console.log('Login successful');
         
-        // Redirect to dashboard
-        navigate('/dashboard');
+        // Check if there's a redirect path from protected route
+        const state = location.state as LocationState;
+        const redirectPath = state?.from || '/dashboard';
+        
+        // Redirect to the original path or dashboard
+        navigate(redirectPath);
       } else {
         setError('Login failed. Please check your credentials.');
       }
@@ -60,7 +66,7 @@ const Login: React.FC = () => {
   };
   
   return (
-    <div className="container">
+    <PageLayout>
       <div style={{ maxWidth: '400px', margin: '40px auto' }}>
         <div className="card">
           <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Login</h1>
@@ -116,7 +122,7 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 };
 

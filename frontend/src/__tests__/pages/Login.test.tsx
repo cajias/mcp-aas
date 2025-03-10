@@ -22,6 +22,14 @@ jest.mock('react-router-dom', () => {
   };
 });
 
+// Mock PageLayout component to simplify testing
+jest.mock('../../components/layout/PageLayout', () => ({
+  __esModule: true,
+  default: function MockPageLayout({ children }: { children: React.ReactNode }) {
+    return <div data-testid="mock-layout">{children}</div>;
+  }
+}));
+
 describe('Login Component', () => {
   const mockLogin = jest.fn();
   
@@ -163,25 +171,31 @@ describe('Login Component', () => {
     expect(screen.getByText(/username and password are required/i)).toBeInTheDocument();
   });
   
-  it('should navigate to registration page when register link is clicked', () => {
+  it('should have a link to the registration page', () => {
     render(
       <BrowserRouter>
         <Login />
       </BrowserRouter>
     );
     
-    const registerLink = screen.getByText(/register/i);
-    expect(registerLink).toHaveAttribute('href', '/register');
+    // Just check that there's at least one link to /register
+    const registerLinks = screen.getAllByRole('link');
+    const hasRegisterLink = registerLinks.some(link => link.getAttribute('href') === '/register');
+    
+    expect(hasRegisterLink).toBe(true);
   });
   
-  it('should navigate to forgot password page when forgot password link is clicked', () => {
+  it('should have a link to the forgot password page', () => {
     render(
       <BrowserRouter>
         <Login />
       </BrowserRouter>
     );
     
-    const forgotPasswordLink = screen.getByText(/forgot password/i);
-    expect(forgotPasswordLink).toHaveAttribute('href', '/forgot-password');
+    // Just check that there's at least one link to /forgot-password
+    const links = screen.getAllByRole('link');
+    const hasForgotPasswordLink = links.some(link => link.getAttribute('href') === '/forgot-password');
+    
+    expect(hasForgotPasswordLink).toBe(true);
   });
 });
