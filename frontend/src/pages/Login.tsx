@@ -85,7 +85,7 @@ const Login: React.FC = () => {
           </form>
           
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <p>Don't have an account? <Link to="/register">Register</Link></p>
+            <p>Don&apos;t have an account? <Link to="/register">Register</Link></p>
             <p><Link to="/">Back to Home</Link></p>
           </div>
         </div>

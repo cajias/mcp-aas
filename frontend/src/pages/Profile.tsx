@@ -21,7 +21,7 @@ const Profile: React.FC = () => {
       
       <div className="card" style={{ marginTop: '20px' }}>
         <h2>My Tools</h2>
-        <p>This section would display the user's active tools.</p>
+        <p>This section would display the user&apos;s active tools.</p>
       </div>
       
       <div style={{ marginTop: '20px' }}>

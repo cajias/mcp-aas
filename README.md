@@ -15,7 +15,7 @@ MCP-aaS is a cloud-based platform that provides:
 This monorepo contains:
 - `frontend/`: React-based frontend code
 - `backend/`: Node.js/Express backend services
-- `infrastructure/`: Terraform/CDK code for AWS deployment
+- `infrastructure/`: Terraform code for AWS deployment
 - `shared/`: Shared libraries and utilities
 
 ## Development
@@ -40,16 +40,40 @@ cd backend && npm install
 ```
 
 ### Running Locally
-```bash
-# Start the frontend
-cd frontend && npm start
+There are two ways to run the application locally:
 
-# Start the backend
-cd backend && npm start
+#### Using npm scripts
+```bash
+# Start all services
+npm start
+
+# Start only the frontend
+npm run start:frontend
+
+# Start only the backend
+npm run start:backend
+```
+
+#### Using Docker Compose
+```bash
+# Start all services
+docker-compose up
+
+# Start in detached mode
+docker-compose up -d
+
+# Stop services
+docker-compose down
 ```
 
 ## Deployment
 See the documentation in the `infrastructure/` directory for deployment instructions.
+
+The application is deployed using:
+- GitHub Actions for CI/CD
+- Docker containers
+- AWS ECS (Elastic Container Service)
+- Terraform for infrastructure as code
 
 ## Contributing
 Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines.
