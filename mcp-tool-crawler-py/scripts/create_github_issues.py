@@ -4,9 +4,17 @@ Script to create GitHub issues and PR for the MCP Tool Crawler project.
 This is a helper script and doesn't need to be included in the final project.
 
 Usage:
-    python create_github_issues.py --token YOUR_GITHUB_TOKEN --repo owner/repo
+    # Using Poetry (recommended)
+    poetry run python scripts/create_github_issues.py --token YOUR_GITHUB_TOKEN --repo owner/repo
+    
+    # Using pip
+    python scripts/create_github_issues.py --token YOUR_GITHUB_TOKEN --repo owner/repo
 
 Requirements:
+    # Using Poetry
+    poetry add requests
+
+    # Using pip
     pip install requests
 """
 
