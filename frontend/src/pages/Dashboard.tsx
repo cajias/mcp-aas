@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Tool } from '@mcp-aas/shared';
+import { useAuth } from '../services/AuthContext';
 
 const Dashboard: React.FC = () => {
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
   
+  useEffect(() => {
+    // If not authenticated, redirect to login
+    if (!isAuthenticated && !user) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, user, navigate]);
+
   useEffect(() => {
     // Fetch tools
     const fetchTools = async () => {
@@ -65,9 +75,29 @@ const Dashboard: React.FC = () => {
     window.alert(`Tool ${toolId} launched! In a real app, this would connect to the tool.`);
   };
   
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+  
   return (
     <div className="container">
-      <h1>My Dashboard</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>My Dashboard</h1>
+        <button 
+          onClick={handleLogout}
+          aria-label="Logout"
+          style={{ padding: '8px 16px' }}
+        >
+          Logout
+        </button>
+      </div>
+      
+      <p className="user-welcome">Welcome to your MCP-aaS dashboard, {user?.username || 'User'}.</p>
       
       {loading ? (
         <div style={{ textAlign: 'center', marginTop: '40px' }}>
