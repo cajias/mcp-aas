@@ -142,6 +142,17 @@ For websites without a predefined crawler:
 git clone https://github.com/your-org/mcp-tool-crawler.git
 cd mcp-tool-crawler
 
+# Using Poetry (recommended)
+# Install Poetry if you don't have it
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install dependencies
+poetry install
+
+# Activate the virtual environment
+poetry shell
+
+# Alternative: Using pip with venv
 # Create a virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -157,35 +168,45 @@ cp .env.example .env
 ### Running Locally
 
 ```bash
+# With Poetry (recommended)
 # Initialize sources
-python -m src.cli init
+poetry run mcp-crawler init
 
 # List all sources
-python -m src.cli list
+poetry run mcp-crawler list
 
 # Add a new source
-python -m src.cli add "https://github.com/example/awesome-mcp-tools" --name "Example Tools"
+poetry run mcp-crawler add "https://github.com/example/awesome-mcp-tools" --name "Example Tools"
 
 # Crawl a specific source
-python -m src.cli crawl --id "source-123456"
+poetry run mcp-crawler crawl --id "source-123456"
 
 # Crawl all sources
-python -m src.cli crawl --all
+poetry run mcp-crawler crawl --all
 
-# Crawl all sources with specific concurrency
+# Alternative: Using Python module directly
+python -m src.cli init
+python -m src.cli list
+python -m src.cli add "https://github.com/example/awesome-mcp-tools" --name "Example Tools"
 python -m src.cli crawl --all --concurrency 3
 ```
 
 ### Running Tests
 
 ```bash
+# With Poetry (recommended)
 # Run all tests
-pytest
+poetry run pytest
 
 # Run specific test file
-pytest tests/test_github_crawler.py
+poetry run pytest tests/test_github_crawler.py
 
 # Run with coverage
+poetry run pytest --cov=src
+
+# With venv/pip
+pytest
+pytest tests/test_github_crawler.py
 pytest --cov=src
 ```
 
@@ -194,7 +215,10 @@ pytest --cov=src
 ### Packaging Lambda Functions
 
 ```bash
-# Package Lambda functions
+# Package Lambda functions with Poetry
+poetry run ./scripts/package_lambda.sh
+
+# Traditional method
 ./scripts/package_lambda.sh
 ```
 
