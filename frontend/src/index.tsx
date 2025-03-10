@@ -8,6 +8,9 @@ import { configureAmplify } from './config/amplify';
 // Auth Context
 import { AuthProvider } from './services/AuthContext';
 
+// Auth Components
+import ProtectedRoute from './components/auth/ProtectedRoute';
+
 // Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -16,6 +19,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import ToolDetails from './pages/ToolDetails';
 import Profile from './pages/Profile';
+import AdminDashboard from './pages/AdminDashboard';
+import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
 
 // Styles
@@ -33,13 +38,38 @@ root.render(
     <AuthProvider>
       <Router>
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/tools/:id" element={<ToolDetails />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          
+          {/* Protected routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/tools/:id" element={
+            <ProtectedRoute>
+              <ToolDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          
+          {/* Role-based protected route - admin only */}
+          <Route path="/admin" element={
+            <ProtectedRoute roles={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          
+          {/* Not found */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>

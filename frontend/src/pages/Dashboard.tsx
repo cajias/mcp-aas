@@ -88,13 +88,26 @@ const Dashboard: React.FC = () => {
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>My Dashboard</h1>
-        <button 
-          onClick={handleLogout}
-          aria-label="Logout"
-          style={{ padding: '8px 16px' }}
-        >
-          Logout
-        </button>
+        
+        <div>
+          {user?.attributes?.['custom:roles']?.includes('admin') && (
+            <Link to="/admin">
+              <button 
+                style={{ marginRight: '10px', padding: '8px 16px', backgroundColor: '#2196f3' }}
+              >
+                Admin Dashboard
+              </button>
+            </Link>
+          )}
+          
+          <button 
+            onClick={handleLogout}
+            aria-label="Logout"
+            style={{ padding: '8px 16px' }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
       
       <p className="user-welcome">Welcome to your MCP-aaS dashboard, {user?.username || 'User'}.</p>
