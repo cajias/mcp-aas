@@ -1,0 +1,3 @@
+[submodule ".file/claude-gh-directives"]
+	path = .file/claude-gh-directives
+	url = https://github.com/cajias/claude-gh-directives
