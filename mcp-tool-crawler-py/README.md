@@ -27,22 +27,12 @@ The system uses a serverless architecture with the following components:
 
 ### Detailed Component Diagram
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│                       AWS Step Functions                        │
-└───────────────────────────────┬────────────────────────────────┘
-                                │
-            ┌──────────────────┬┴┬──────────────────┐
-            │                  │  │                  │
-┌───────────▼──────────┐┌─────▼──▼─────┐┌───────────▼──────────┐
-│  Source Management   ││   Crawler    ││  Catalog Processing   │
-│      Lambda          ││   Lambda     ││       Lambda          │
-└─────────┬───────────┘└──────┬───────┘└───────────┬───────────┘
-          │                    │                    │
-┌─────────▼───────────┐┌──────▼───────┐┌───────────▼───────────┐
-│     DynamoDB        ││    OpenAI    ││         S3            │
-│ (Sources & Crawlers)││    API       ││   (Tool Catalog)      │
-└─────────────────────┘└──────────────┘└─────────────────────────┘
+```mermaid
+flowchart TD
+    SF[AWS Step Functions] --> SM & CL & CP
+    SM[Source Management Lambda] --> DB[(DynamoDB\nSources & Crawlers)]
+    CL[Crawler Lambda] --> OAI[OpenAI API]
+    CP[Catalog Processing Lambda] --> S3[(S3\nTool Catalog)]
 ```
 
 ### Workflow Overview
@@ -51,35 +41,22 @@ The system follows a multi-step workflow managed by AWS Step Functions:
 
 ![MCP Tool Crawler Workflow](docs/images/workflow.png)
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│ Initialize      │     │ Get Sources     │     │ Map Sources     │
-│ Sources         ├────►│ To Crawl        ├────►│ To Process      │
-└─────────────────┘     └─────────────────┘     └───────┬─────────┘
-                                                        │
-                                                        ▼
-                                         ┌─────────────────────────┐
-                                         │ Check Crawler Strategy  │
-                                         └───────────┬─────────────┘
-                                                     │
-                      ┌────────────────────┬────────┴────────┬────────────────────┐
-                      │                    │                 │                     │
-               ┌──────▼─────┐   ┌─────────▼────────┐   ┌────▼──────┐        ┌─────▼────┐
-               │ Known      │   │  Generate        │   │  Execute  │        │  Record  │
-               │ Crawler    │   │  Crawler         │   │  Crawler  │───────►│  Result  │
-               └──────┬─────┘   └─────────┬────────┘   └───────────┘        └──────────┘
-                      │                   │
-                      └───────────────────┘
-
-┌─────────────────┐                               
-│ Process         │                                    
-│ Catalog         │◄────────────────────────── (After all sources processed)
-└─────────────┬───┘                                    
-              │                                         
-              ▼                                        
-┌─────────────────────┐                               
-│ Notification        │                               
-└─────────────────────┘
+```mermaid
+flowchart TD
+    IS[Initialize Sources] --> GS[Get Sources To Crawl]
+    GS --> MS[Map Sources To Process]
+    MS --> CS[Check Crawler Strategy]
+    CS --> KC[Known Crawler] & GC[Generate Crawler] & EC[Execute Crawler]
+    KC --> EC
+    GC --> EC
+    EC --> RR[Record Result]
+    
+    subgraph Finalization
+        PC[Process Catalog] --> N[Notification]
+    end
+    
+    RR --> PC
+    note[After all sources processed] -.- PC
 ```
 
 ### AI Crawler Generation Process
@@ -93,19 +70,18 @@ For websites without a predefined crawler:
 
 ![AI Crawler Generation](docs/images/ai-crawler-generation.png)
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Fetch       │     │  Generate    │     │  Validate    │     │  Execute     │
-│  Website     ├────►│  Crawler     ├────►│  Generated   ├────►│  in Sandbox  │
-│  Content     │     │  with AI     │     │  Code        │     │              │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────┬───────┘
-                                                                       │
-                                                                       ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Save        │     │  Process     │     │  Extract     │     │  Clean &     │
-│  to Catalog  │◄────┤  Results     │◄────┤  MCP Tools   │◄────┤  Filter Data │
-│              │     │              │     │              │     │              │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+```mermaid
+flowchart LR
+    FW[Fetch Website Content] --> GC[Generate Crawler with AI]
+    GC --> VG[Validate Generated Code]
+    VG --> ES[Execute in Sandbox]
+    ES --> CF[Clean & Filter Data]
+    CF --> EM[Extract MCP Tools]
+    EM --> PR[Process Results] 
+    PR --> SC[Save to Catalog]
+    
+    style GC fill:#f9f,stroke:#333,stroke-width:2px
+    style ES fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
 ## Components
