@@ -254,6 +254,9 @@ describe('AuthContext', () => {
       success: false
     });
 
+    // Clear mock call history before this test
+    (authService.signIn as jest.Mock).mockClear();
+
     render(
       <AuthProvider>
         <TestComponent />
@@ -267,19 +270,14 @@ describe('AuthContext', () => {
 
     // Click login button with test user credentials
     await act(async () => {
-      // We need to re-render the component because we changed environment
-      render(
-        <AuthProvider>
-          <TestComponent />
-        </AuthProvider>
-      );
-      
       // Trigger login with test credentials
-      const loginButton = screen.getAllByTestId('login-button')[0];
-      loginButton.click();
+      screen.getByTestId('login-button').click();
     });
 
-    // Mock implementation for test user should bypass real auth
+    // In development mode, we should be using the mock implementation
+    // which doesn't call the actual auth service
+    expect(screen.getByTestId('authenticated').textContent).toBe('Authenticated');
+    expect(screen.getByTestId('username').textContent).toBe('testuser');
     expect(authService.signIn).not.toHaveBeenCalled();
     
     // Restore original environment
