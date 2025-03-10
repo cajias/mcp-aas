@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from uuid import uuid4, UUID
-from pydantic import BaseModel, Field, HttpUrl, validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator, ConfigDict
 
 
 class SourceType(str, Enum):
@@ -15,6 +15,8 @@ class SourceType(str, Enum):
 
 class Source(BaseModel):
     """Model representing a source of MCP tools"""
+    model_config = ConfigDict(validate_assignment=True)
+    
     id: str = Field(default_factory=lambda: f"source-{uuid4()}")
     url: str
     name: str
@@ -30,16 +32,16 @@ class Source(BaseModel):
     # Additional metadata specific to this source
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
-    class Config:
-        validate_assignment = True
-    
-    @validator('last_crawled', 'last_crawl_status', pre=True, always=True)
+    @field_validator('last_crawled', 'last_crawl_status', mode='before')
+    @classmethod
     def set_defaults(cls, v):
         return v if v is not None else None
 
 
 class MCPTool(BaseModel):
     """Model representing an MCP tool"""
+    model_config = ConfigDict(validate_assignment=True)
+    
     id: str = Field(default_factory=lambda: f"tool-{uuid4()}")
     name: str
     description: str
@@ -52,13 +54,12 @@ class MCPTool(BaseModel):
     last_updated: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     # Optional metadata
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    
-    class Config:
-        validate_assignment = True
 
 
 class CrawlerStrategy(BaseModel):
     """Model representing a crawler strategy for a specific source"""
+    model_config = ConfigDict(validate_assignment=True)
+    
     id: str = Field(default_factory=lambda: f"crawler-{uuid4()}")
     source_id: str
     source_type: SourceType
@@ -70,13 +71,12 @@ class CrawlerStrategy(BaseModel):
     created: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     # When this crawler was last modified
     last_modified: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-    
-    class Config:
-        validate_assignment = True
 
 
 class CrawlResult(BaseModel):
     """Model representing the result of a crawl operation"""
+    model_config = ConfigDict(validate_assignment=True)
+    
     source_id: str
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     success: bool
@@ -85,6 +85,3 @@ class CrawlResult(BaseModel):
     updated_tools: int
     duration: int  # milliseconds
     error: Optional[str] = None
-    
-    class Config:
-        validate_assignment = True
