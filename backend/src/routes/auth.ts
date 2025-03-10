@@ -6,7 +6,8 @@ import {
   ConfirmSignUpCommand,
   GlobalSignOutCommand,
   ForgotPasswordCommand,
-  ConfirmForgotPasswordCommand
+  ConfirmForgotPasswordCommand,
+  AuthFlowType
 } from '@aws-sdk/client-cognito-identity-provider';
 
 const router = Router();
@@ -34,7 +35,7 @@ router.post('/login', async (req, res) => {
 
     const params = {
       ClientId: CLIENT_ID,
-      AuthFlow: 'USER_PASSWORD_AUTH',
+      AuthFlow: 'USER_PASSWORD_AUTH' as AuthFlowType,
       AuthParameters: {
         USERNAME: username,
         PASSWORD: password
@@ -55,7 +56,7 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', error);
     return res.status(401).json({
       success: false,
-      error: error.message || 'Authentication failed'
+      error: error instanceof Error ? error.message : 'Authentication failed'
     });
   }
 });
@@ -114,7 +115,7 @@ router.post('/register', async (req, res) => {
     console.error('Registration error:', error);
     return res.status(400).json({
       success: false,
-      error: error.message || 'Registration failed'
+      error: error instanceof Error ? error.message : 'Registration failed'
     });
   }
 });
@@ -150,7 +151,7 @@ router.post('/confirm', async (req, res) => {
     console.error('Confirmation error:', error);
     return res.status(400).json({
       success: false,
-      error: error.message || 'Confirmation failed'
+      error: error instanceof Error ? error.message : 'Confirmation failed'
     });
   }
 });
@@ -184,7 +185,7 @@ router.post('/logout', async (req, res) => {
     console.error('Logout error:', error);
     return res.status(400).json({
       success: false,
-      error: error.message || 'Logout failed'
+      error: error instanceof Error ? error.message : 'Logout failed'
     });
   }
 });
@@ -219,7 +220,7 @@ router.post('/forgot-password', async (req, res) => {
     console.error('Forgot password error:', error);
     return res.status(400).json({
       success: false,
-      error: error.message || 'Failed to request password reset'
+      error: error instanceof Error ? error.message : 'Failed to request password reset'
     });
   }
 });
@@ -256,7 +257,7 @@ router.post('/reset-password', async (req, res) => {
     console.error('Reset password error:', error);
     return res.status(400).json({
       success: false,
-      error: error.message || 'Failed to reset password'
+      error: error instanceof Error ? error.message : 'Failed to reset password'
     });
   }
 });

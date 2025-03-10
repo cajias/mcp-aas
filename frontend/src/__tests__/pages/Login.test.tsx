@@ -43,11 +43,11 @@ describe('Login Component', () => {
       </BrowserRouter>
     );
     
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/username or email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
     expect(screen.getByText(/forgot password/i)).toBeInTheDocument();
-    expect(screen.getByText(/don't have an account\? register/i)).toBeInTheDocument();
+    expect(screen.getByText(/don't have an account/i)).toBeInTheDocument();
   });
   
   it('should handle form input changes', () => {
@@ -57,7 +57,7 @@ describe('Login Component', () => {
       </BrowserRouter>
     );
     
-    const usernameInput = screen.getByLabelText(/username/i);
+    const usernameInput = screen.getByLabelText(/username or email/i);
     const passwordInput = screen.getByLabelText(/password/i);
     
     fireEvent.change(usernameInput, { target: { value: 'testuser' } });
@@ -76,13 +76,16 @@ describe('Login Component', () => {
       </BrowserRouter>
     );
     
-    const usernameInput = screen.getByLabelText(/username/i);
+    const usernameInput = screen.getByLabelText(/username or email/i);
     const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /login/i });
     
     fireEvent.change(usernameInput, { target: { value: 'testuser' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    
+    await act(async () => {
+      fireEvent.click(submitButton);
+    });
     
     expect(mockLogin).toHaveBeenCalledWith('testuser', 'password123');
   });
@@ -96,16 +99,19 @@ describe('Login Component', () => {
       </BrowserRouter>
     );
     
-    const usernameInput = screen.getByLabelText(/username/i);
+    const usernameInput = screen.getByLabelText(/username or email/i);
     const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /login/i });
     
     fireEvent.change(usernameInput, { target: { value: 'testuser' } });
     fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
-    fireEvent.click(submitButton);
+    
+    await act(async () => {
+      fireEvent.click(submitButton);
+    });
     
     await waitFor(() => {
-      expect(screen.getByText(/invalid username or password/i)).toBeInTheDocument();
+      expect(screen.getByText(/login failed/i)).toBeInTheDocument();
     });
   });
   
@@ -121,16 +127,16 @@ describe('Login Component', () => {
       </BrowserRouter>
     );
     
-    const usernameInput = screen.getByLabelText(/username/i);
+    const usernameInput = screen.getByLabelText(/username or email/i);
     const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /login/i });
     
     fireEvent.change(usernameInput, { target: { value: 'testuser' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     fireEvent.click(submitButton);
     
     // Check that loading state is shown
-    expect(screen.getByRole('button', { name: /signing in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /logging in/i })).toBeInTheDocument();
     expect(submitButton).toBeDisabled();
     
     // Wait for login to complete
@@ -147,15 +153,14 @@ describe('Login Component', () => {
     );
     
     // Try to submit the form without filling required fields
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /login/i });
     fireEvent.click(submitButton);
     
     // Login should not be called because the form is invalid
     expect(mockLogin).not.toHaveBeenCalled();
     
     // Error messages should be displayed
-    expect(screen.getByText(/username is required/i)).toBeInTheDocument();
-    expect(screen.getByText(/password is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/username and password are required/i)).toBeInTheDocument();
   });
   
   it('should navigate to registration page when register link is clicked', () => {

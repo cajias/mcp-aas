@@ -1,3 +1,24 @@
+// Mock AWS SDK modules
+const mockSend = jest.fn();
+
+jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
+  return {
+    CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
+      send: mockSend
+    })),
+    InitiateAuthCommand: jest.fn(),
+    SignUpCommand: jest.fn(),
+    ConfirmSignUpCommand: jest.fn(),
+    GlobalSignOutCommand: jest.fn(),
+    ForgotPasswordCommand: jest.fn(),
+    ConfirmForgotPasswordCommand: jest.fn(),
+    AuthFlowType: {
+      USER_PASSWORD_AUTH: 'USER_PASSWORD_AUTH'
+    }
+  };
+});
+
+// After mocks, import dependencies
 import request from 'supertest';
 import express from 'express';
 import { Router } from 'express';
@@ -13,24 +34,8 @@ import {
   ConfirmForgotPasswordCommand
 } from '@aws-sdk/client-cognito-identity-provider';
 
-// Mock AWS SDK modules
-jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
-  return {
-    CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
-      send: jest.fn()
-    })),
-    InitiateAuthCommand: jest.fn(),
-    SignUpCommand: jest.fn(),
-    ConfirmSignUpCommand: jest.fn(),
-    GlobalSignOutCommand: jest.fn(),
-    ForgotPasswordCommand: jest.fn(),
-    ConfirmForgotPasswordCommand: jest.fn()
-  };
-});
-
 describe('Auth Routes', () => {
   let app: express.Application;
-  let mockCognitoClient: any;
   
   beforeEach(() => {
     // Clear all mocks
@@ -40,9 +45,6 @@ describe('Auth Routes', () => {
     app = express();
     app.use(json());
     app.use('/auth', authRoutes);
-    
-    // Get the mocked Cognito client instance
-    mockCognitoClient = (CognitoIdentityProviderClient as jest.Mock).mock.instances[0];
   });
   
   describe('POST /auth/login', () => {
@@ -57,7 +59,7 @@ describe('Auth Routes', () => {
         }
       };
       
-      mockCognitoClient.send.mockResolvedValue(mockAuthResult);
+      mockSend.mockResolvedValue(mockAuthResult);
       
       // Send login request
       const response = await request(app)
@@ -88,13 +90,13 @@ describe('Auth Routes', () => {
       });
       
       // Verify the command was sent
-      expect(mockCognitoClient.send).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledTimes(1);
     });
     
     it('should handle authentication failure', async () => {
       // Set up mock error
       const mockError = new Error('Incorrect username or password.');
-      mockCognitoClient.send.mockRejectedValue(mockError);
+      mockSend.mockRejectedValue(mockError);
       
       // Send login request
       const response = await request(app)
@@ -126,7 +128,7 @@ describe('Auth Routes', () => {
       });
       
       // Command should not be sent
-      expect(mockCognitoClient.send).not.toHaveBeenCalled();
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
   
@@ -138,7 +140,7 @@ describe('Auth Routes', () => {
         UserSub: 'mock-user-sub'
       };
       
-      mockCognitoClient.send.mockResolvedValue(mockSignUpResponse);
+      mockSend.mockResolvedValue(mockSignUpResponse);
       
       // Send registration request
       const response = await request(app)
@@ -184,13 +186,13 @@ describe('Auth Routes', () => {
       });
       
       // Verify the command was sent
-      expect(mockCognitoClient.send).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledTimes(1);
     });
     
     it('should handle registration failure', async () => {
       // Set up mock error
       const mockError = new Error('User already exists');
-      mockCognitoClient.send.mockRejectedValue(mockError);
+      mockSend.mockRejectedValue(mockError);
       
       // Send registration request
       const response = await request(app)
@@ -226,14 +228,14 @@ describe('Auth Routes', () => {
       });
       
       // Command should not be sent
-      expect(mockCognitoClient.send).not.toHaveBeenCalled();
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
   
   describe('POST /auth/confirm', () => {
     it('should successfully confirm a registration', async () => {
       // Set up mock response (empty response for confirmation success)
-      mockCognitoClient.send.mockResolvedValue({});
+      mockSend.mockResolvedValue({});
       
       // Send confirmation request
       const response = await request(app)
@@ -260,13 +262,13 @@ describe('Auth Routes', () => {
       });
       
       // Verify the command was sent
-      expect(mockCognitoClient.send).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledTimes(1);
     });
     
     it('should handle confirmation failure', async () => {
       // Set up mock error
       const mockError = new Error('Invalid verification code');
-      mockCognitoClient.send.mockRejectedValue(mockError);
+      mockSend.mockRejectedValue(mockError);
       
       // Send confirmation request
       const response = await request(app)
@@ -301,14 +303,14 @@ describe('Auth Routes', () => {
       });
       
       // Command should not be sent
-      expect(mockCognitoClient.send).not.toHaveBeenCalled();
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
   
   describe('POST /auth/logout', () => {
     it('should successfully log out a user', async () => {
       // Set up mock response (empty response for logout success)
-      mockCognitoClient.send.mockResolvedValue({});
+      mockSend.mockResolvedValue({});
       
       // Send logout request
       const response = await request(app)
@@ -332,13 +334,13 @@ describe('Auth Routes', () => {
       });
       
       // Verify the command was sent
-      expect(mockCognitoClient.send).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledTimes(1);
     });
     
     it('should handle logout failure', async () => {
       // Set up mock error
       const mockError = new Error('Invalid access token');
-      mockCognitoClient.send.mockRejectedValue(mockError);
+      mockSend.mockRejectedValue(mockError);
       
       // Send logout request
       const response = await request(app)
@@ -369,14 +371,14 @@ describe('Auth Routes', () => {
       });
       
       // Command should not be sent
-      expect(mockCognitoClient.send).not.toHaveBeenCalled();
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
   
   describe('POST /auth/forgot-password', () => {
     it('should successfully initiate password reset', async () => {
       // Set up mock response (empty response for forgot password success)
-      mockCognitoClient.send.mockResolvedValue({});
+      mockSend.mockResolvedValue({});
       
       // Send forgot password request
       const response = await request(app)
@@ -401,13 +403,13 @@ describe('Auth Routes', () => {
       });
       
       // Verify the command was sent
-      expect(mockCognitoClient.send).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledTimes(1);
     });
     
     it('should handle forgot password failure', async () => {
       // Set up mock error
       const mockError = new Error('User does not exist');
-      mockCognitoClient.send.mockRejectedValue(mockError);
+      mockSend.mockRejectedValue(mockError);
       
       // Send forgot password request
       const response = await request(app)
@@ -438,14 +440,14 @@ describe('Auth Routes', () => {
       });
       
       // Command should not be sent
-      expect(mockCognitoClient.send).not.toHaveBeenCalled();
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
   
   describe('POST /auth/reset-password', () => {
     it('should successfully reset password', async () => {
       // Set up mock response (empty response for reset password success)
-      mockCognitoClient.send.mockResolvedValue({});
+      mockSend.mockResolvedValue({});
       
       // Send reset password request
       const response = await request(app)
@@ -474,13 +476,13 @@ describe('Auth Routes', () => {
       });
       
       // Verify the command was sent
-      expect(mockCognitoClient.send).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledTimes(1);
     });
     
     it('should handle reset password failure', async () => {
       // Set up mock error
       const mockError = new Error('Invalid verification code');
-      mockCognitoClient.send.mockRejectedValue(mockError);
+      mockSend.mockRejectedValue(mockError);
       
       // Send reset password request
       const response = await request(app)
@@ -517,7 +519,7 @@ describe('Auth Routes', () => {
       });
       
       // Command should not be sent
-      expect(mockCognitoClient.send).not.toHaveBeenCalled();
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
 });
