@@ -22,6 +22,14 @@ jest.mock('react-router-dom', () => {
   };
 });
 
+// Mock PageLayout component to simplify testing
+jest.mock('../../components/layout/PageLayout', () => ({
+  __esModule: true,
+  default: function MockPageLayout({ children }: { children: React.ReactNode }) {
+    return <div data-testid="mock-layout">{children}</div>;
+  }
+}));
+
 describe('Login Component', () => {
   const mockLogin = jest.fn();
   
@@ -170,7 +178,12 @@ describe('Login Component', () => {
       </BrowserRouter>
     );
     
-    const registerLink = screen.getByText(/register/i);
+    // Find specifically the register link that appears after "Don't have an account?"
+    const accountText = screen.getByText(/don't have an account\?/i);
+    const registerLink = accountText.nextElementSibling || 
+                         Array.from(accountText.parentElement?.querySelectorAll('a') || [])
+                           .find(a => a.textContent?.includes('Register'));
+    
     expect(registerLink).toHaveAttribute('href', '/register');
   });
   
@@ -181,7 +194,15 @@ describe('Login Component', () => {
       </BrowserRouter>
     );
     
-    const forgotPasswordLink = screen.getByText(/forgot password/i);
-    expect(forgotPasswordLink).toHaveAttribute('href', '/forgot-password');
+    // Find the "Forgot Password?" link within the form context
+    const forgotPasswordLinks = screen.getAllByText(/forgot password\?/i);
+    const forgotPasswordLink = forgotPasswordLinks.find(element => 
+      element.tagName.toLowerCase() === 'a' || element.closest('a')
+    ) || forgotPasswordLinks[0];
+    
+    const linkElement = forgotPasswordLink.tagName.toLowerCase() === 'a' ? 
+      forgotPasswordLink : forgotPasswordLink.closest('a');
+    
+    expect(linkElement).toHaveAttribute('href', '/forgot-password');
   });
 });
