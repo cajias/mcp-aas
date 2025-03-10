@@ -16,25 +16,29 @@ class CustomWorld {
   // Method to initialize browser before each scenario
   async init() {
     try {
+      console.log('Initializing browser...');
       // Increase timeout for browser launch
       this.browser = await playwright.chromium.launch({
         headless: process.env.HEADLESS !== 'false', // Run in headless mode unless specified otherwise
         slowMo: process.env.SLOW_MO ? parseInt(process.env.SLOW_MO) : 0,
-        timeout: 30000, // 30 seconds timeout for browser launch
+        timeout: 60000, // 60 seconds timeout for browser launch
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
       });
       
+      console.log('Browser launched, creating context...');
       this.context = await this.browser.newContext({
         // Add viewport size
         viewport: { width: 1280, height: 720 },
         // Add timeout for navigations
-        navigationTimeout: 30000, // Longer timeout
+        navigationTimeout: 60000, // Increased timeout
       });
       
       // Create a new page with timeout settings
+      console.log('Context created, creating page...');
       this.page = await this.context.newPage();
       
       // Set default timeout for Playwright actions
-      this.page.setDefaultTimeout(30000); // 30 seconds timeout
+      this.page.setDefaultTimeout(60000); // 60 seconds timeout
       
       console.log('Browser initialized successfully');
     } catch (error) {

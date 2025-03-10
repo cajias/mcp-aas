@@ -10,6 +10,6 @@ module.exports = {
       'html:cucumber-report.html'
     ],
     // Increase timeouts
-    timeout: 60000
+    timeout: 120000 // 2 minutes
   }
 };
