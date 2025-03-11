@@ -10,6 +10,7 @@ import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as path from 'path';
 import * as fs from 'fs';
+import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 
 export class ToolCrawlerStack extends cdk.Stack {
   public readonly sourceBucket: s3.Bucket;
@@ -189,23 +190,7 @@ export class ToolCrawlerStack extends cdk.Stack {
       filters: [{ prefix: this.sourceListKey }],
     }));
 
-    // Create Step Function definition from JSON
-    // Read the Step Function definition from the JSON file
-    const stepFunctionJsonPath = path.join(__dirname, '../../../mcp-tool-crawler-py/infrastructure/step-functions/mcp-tool-crawler.json');
-    const stepFunctionDefinition = JSON.parse(fs.readFileSync(stepFunctionJsonPath, 'utf8'));
-
-    // Replace placeholders in the definition with actual ARNs
-    const definitionString = JSON.stringify(stepFunctionDefinition)
-      .replace('${SourceInitializerFunction}', sourceInitializerFunction.functionArn)
-      .replace('${SourcesFunction}', sourcesFunction.functionArn)
-      .replace('${CrawlerGeneratorFunction}', crawlerGeneratorFunction.functionArn)
-      .replace('${SaveCrawlerStrategyFunction}', saveCrawlerStrategyFunction.functionArn)
-      .replace('${RunGeneratedCrawlerFunction}', runGeneratedCrawlerFunction.functionArn)
-      .replace('${RunKnownCrawlerFunction}', runKnownCrawlerFunction.functionArn)
-      .replace('${RecordCrawlResultFunction}', recordCrawlResultFunction.functionArn)
-      .replace('${ProcessCatalogFunction}', processCatalogFunction.functionArn)
-      .replace('${NotificationFunction}', notificationFunction.functionArn);
-
+    // Create Step Function definition
     // Create Step Function state machine role
     const stateMachineRole = new iam.Role(this, 'StateMachineExecutionRole', {
       assumedBy: new iam.ServicePrincipal('states.amazonaws.com'),
@@ -221,10 +206,126 @@ export class ToolCrawlerStack extends cdk.Stack {
     recordCrawlResultFunction.grantInvoke(stateMachineRole);
     processCatalogFunction.grantInvoke(stateMachineRole);
     notificationFunction.grantInvoke(stateMachineRole);
-
+    
+    // Define the individual steps using the CDK constructs
+    const initializeSourcesTask = new tasks.LambdaInvoke(this, 'InitializeSources', {
+      lambdaFunction: sourceInitializerFunction,
+      comment: 'Initialize sources from S3 sources.yaml or from configuration',
+      payloadResponseOnly: true,
+    });
+    
+    const getSourcesToCrawlTask = new tasks.LambdaInvoke(this, 'GetSourcesToCrawl', {
+      lambdaFunction: sourcesFunction,
+      payloadResponseOnly: true,
+    });
+    
+    const checkSourcesExistChoice = new sfn.Choice(this, 'CheckSourcesExist');
+    const noSourcesToProcess = new sfn.Pass(this, 'NoSourcesToProcess', {
+      result: sfn.Result.fromObject({
+        status: 'success',
+        message: 'No sources to crawl',
+      }),
+    });
+    
+    const mapSourcesToProcess = new sfn.Map(this, 'MapSourcesToProcess', {
+      maxConcurrency: 5,
+      itemsPath: '$.sources',
+    });
+    
+    const checkCrawlerStrategy = new sfn.Choice(this, 'CheckCrawlerStrategy');
+    
+    const generateCrawlerStrategy = new tasks.LambdaInvoke(this, 'GenerateCrawlerStrategy', {
+      lambdaFunction: crawlerGeneratorFunction,
+      comment: 'This is where AI generates a crawler for unknown sources',
+      payloadResponseOnly: true,
+    });
+    
+    const saveCrawlerStrategy = new tasks.LambdaInvoke(this, 'SaveCrawlerStrategy', {
+      lambdaFunction: saveCrawlerStrategyFunction,
+      payloadResponseOnly: true,
+    });
+    
+    const runGeneratedCrawler = new tasks.LambdaInvoke(this, 'RunGeneratedCrawler', {
+      lambdaFunction: runGeneratedCrawlerFunction,
+      payloadResponseOnly: true,
+      retryOnServiceExceptions: true,
+    });
+    
+    const runKnownCrawler = new tasks.LambdaInvoke(this, 'RunKnownCrawler', {
+      lambdaFunction: runKnownCrawlerFunction,
+      payloadResponseOnly: true,
+      retryOnServiceExceptions: true,
+    });
+    
+    const recordCrawlSuccess = new tasks.LambdaInvoke(this, 'RecordCrawlSuccess', {
+      lambdaFunction: recordCrawlResultFunction,
+      payloadResponseOnly: true,
+    });
+    
+    const recordCrawlFailure = new tasks.LambdaInvoke(this, 'RecordCrawlFailure', {
+      lambdaFunction: recordCrawlResultFunction,
+      payloadResponseOnly: true,
+    });
+    
+    const processCatalog = new tasks.LambdaInvoke(this, 'ProcessCatalog', {
+      lambdaFunction: processCatalogFunction,
+      payloadResponseOnly: true,
+    });
+    
+    const notifyCrawlComplete = new tasks.LambdaInvoke(this, 'NotifyCrawlComplete', {
+      lambdaFunction: notificationFunction,
+      payloadResponseOnly: true,
+    });
+    
+    // Build the workflow
+    initializeSourcesTask.next(getSourcesToCrawlTask);
+    
+    getSourcesToCrawlTask.next(checkSourcesExistChoice);
+    
+    checkSourcesExistChoice
+      .when(sfn.Condition.isPresent('$.sources'), mapSourcesToProcess)
+      .otherwise(noSourcesToProcess);
+      
+    // Set up map state for processing sources
+    const mapDefinition = checkCrawlerStrategy
+      .when(sfn.Condition.booleanEquals('$.hasKnownCrawler', true), runKnownCrawler)
+      .otherwise(generateCrawlerStrategy);
+      
+    generateCrawlerStrategy.next(saveCrawlerStrategy);
+    saveCrawlerStrategy.next(runGeneratedCrawler);
+    
+    // Add retry and error handling for crawlers
+    runGeneratedCrawler.addRetry({
+      maxAttempts: 2,
+      interval: cdk.Duration.seconds(2),
+      backoffRate: 2,
+    });
+    
+    runGeneratedCrawler.addCatch(recordCrawlFailure, {
+      resultPath: '$.error',
+    });
+    
+    runKnownCrawler.addRetry({
+      maxAttempts: 2,
+      interval: cdk.Duration.seconds(2),
+      backoffRate: 2,
+    });
+    
+    runKnownCrawler.addCatch(recordCrawlFailure, {
+      resultPath: '$.error',
+    });
+    
+    runGeneratedCrawler.next(recordCrawlSuccess);
+    runKnownCrawler.next(recordCrawlSuccess);
+    
+    mapSourcesToProcess.iterator(mapDefinition);
+    
+    mapSourcesToProcess.next(processCatalog);
+    processCatalog.next(notifyCrawlComplete);
+    
     // Create the Step Function state machine
     this.stateMachine = new sfn.StateMachine(this, 'ToolCrawlerStateMachine', {
-      definitionString,
+      definition: initializeSourcesTask,
       stateMachineType: sfn.StateMachineType.STANDARD,
       role: stateMachineRole,
     });
