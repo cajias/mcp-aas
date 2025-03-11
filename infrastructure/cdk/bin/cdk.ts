@@ -3,6 +3,7 @@ import * as cdk from 'aws-cdk-lib';
 import { CdkStack } from '../lib/cdk-stack';
 import { AuthStack } from '../lib/auth-stack';
 import { ToolCrawlerStack } from '../lib/tool-crawler-stack';
+import { McpDummyStack } from '../lib/dummy-stack';
 
 const app = new cdk.App();
 
@@ -24,10 +25,10 @@ new CdkStack(app, 'McpAasStack', {
   description: 'Main stack for MCP-aaS',
 });
 
-// Create the tool crawler stack
-new ToolCrawlerStack(app, 'McpToolCrawlerStack', {
+// Create the S3 bucket stack
+const dummyStack = new McpDummyStack(app, 'McpDummyStack', {
   env,
-  description: 'MCP Tool Crawler with S3-triggered Step Function',
+  description: 'S3 bucket for MCP Tool Crawler',
 });
 
 // Synthesize the app into CloudFormation templates

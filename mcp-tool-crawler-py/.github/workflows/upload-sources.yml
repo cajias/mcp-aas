@@ -17,16 +17,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'us-west-2'
-        run: |
-          aws configure set aws.access_key_id $AWS_ACCESS_KEY_ID
-          aws configure set aws.secret_access_key $AWS_SECRET_ACCESS_KEY
-          aws configure set default.region $AWS_REGION
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::938744740083:role/McpToolCrawlerGitHubActionRole
+          aws-region: 'us-west-2'
 
       - name: Upload sources to S3
         run: |
-          aws s3 cp sample-sources.yaml s3://${{ secrets.S3_BUCKET_NAME }}/sources.yaml
+          aws s3 cp sample-sources.yaml s3://mcpdummystack-mcptoolcrawlerbucket79188e62-n40jilnp0est/sources.yaml
           echo "Sources uploaded successfully to S3"
