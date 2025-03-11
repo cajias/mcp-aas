@@ -1,0 +1,13 @@
+sources:
+  - url: https://github.com/wong2/awesome-mcp-servers
+    name: Awesome MCP Servers
+    type: github_awesome_list
+  - url: https://github.com/jpmcb/awesome-machine-context-protocol
+    name: Awesome Machine Context Protocol
+    type: github_awesome_list
+  - url: https://github.com/continuedev/awesome-continue
+    name: Awesome Continue Tools
+    type: github_awesome_list
+  - url: https://mcp-api.org/tools
+    name: MCP API.org Tools Directory
+    type: website

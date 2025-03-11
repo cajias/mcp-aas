@@ -2,6 +2,129 @@
 
 A Python-based service for discovering, crawling, and cataloging Machine Context Protocol (MCP) tools from various sources. The crawler leverages AWS Step Functions and AI-powered code generation to automatically extract MCP tools from diverse sources.
 
+## Source List Management
+
+Sources to crawl are managed in a YAML file (`sample-sources.yaml`) which is uploaded to S3 when changes are pushed to GitHub.
+
+### YAML Format
+
+The source list YAML has the following format:
+
+```yaml
+sources:
+  - url: https://github.com/user/awesome-repo
+    name: Awesome Repository
+    type: github_awesome_list
+  - url: https://example.com/tools
+    name: Example Tools
+    type: website
+```
+
+Fields:
+- `url`: The URL of the source to crawl (required)
+- `name`: A friendly name for the source (optional, will be auto-generated if not provided)
+- `type`: The source type (optional, will be auto-detected if not provided):
+  - `github_awesome_list`: GitHub awesome list
+  - `github_repository`: GitHub repository
+  - `website`: Generic website
+  - `rss_feed`: RSS feed
+  - `manually_added`: Manually added source
+
+### Workflow
+
+1. Edit the `sample-sources.yaml` file with the sources you want to crawl
+2. Commit and push the changes to the `main` branch
+3. GitHub Actions workflow will upload the file to S3
+4. S3 event will trigger the Step Function
+5. Step Function will process the sources and discover tools
+
+## GitHub Actions Setup
+
+To enable the GitHub Actions workflow for uploading the source list:
+
+1. Add the following secrets to your GitHub repository:
+   - `AWS_ACCESS_KEY_ID`: AWS access key ID
+   - `AWS_SECRET_ACCESS_KEY`: AWS secret access key
+   - `S3_BUCKET_NAME`: Name of the S3 bucket to store the source list
+
+## AsyncAPI Specification
+
+The Step Function execution can be triggered via S3 events. Below is an AsyncAPI specification describing this event-driven API:
+
+```yaml
+asyncapi: 2.6.0
+info:
+  title: MCP Tool Crawler API
+  version: 1.0.0
+  description: Async API for the MCP Tool Crawler service
+
+channels:
+  s3/sourceListUpdated:
+    publish:
+      summary: Event published when a source list is updated in S3
+      operationId: sourceListUpdated
+      message:
+        $ref: '#/components/messages/SourceListUpdated'
+  
+  stepFunctions/workflowCompleted:
+    subscribe:
+      summary: Event published when a crawler workflow is completed
+      operationId: workflowCompleted
+      message:
+        $ref: '#/components/messages/WorkflowCompleted'
+
+components:
+  messages:
+    SourceListUpdated:
+      name: sourceListUpdated
+      title: Source List Updated
+      summary: Indicates that a source list was updated in S3
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          s3BucketName:
+            type: string
+            description: Name of the S3 bucket containing the updated source list
+          s3SourceListKey:
+            type: string
+            description: Key of the source list file in S3
+          timestamp:
+            type: string
+            format: date-time
+            description: Time when the update occurred
+    
+    WorkflowCompleted:
+      name: workflowCompleted
+      title: Workflow Completed
+      summary: Sent when a step function workflow completes
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          executionArn:
+            type: string
+            description: ARN of the Step Function execution
+          status:
+            type: string
+            enum: [SUCCEEDED, FAILED, TIMED_OUT, ABORTED]
+            description: Status of the execution
+          startDate:
+            type: string
+            format: date-time
+            description: Start time of the execution
+          stopDate:
+            type: string
+            format: date-time
+            description: End time of the execution
+          input:
+            type: object
+            description: Input provided to the Step Function
+          output:
+            type: object
+            description: Output from the Step Function
+```
+
 ## Project Overview
 
 The MCP Tool Crawler aims to build a comprehensive catalog of Machine Context Protocol (MCP) tools by automatically discovering and extracting information from various sources including GitHub repositories, awesome lists, and websites.

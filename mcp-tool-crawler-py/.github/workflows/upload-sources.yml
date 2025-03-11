@@ -1,0 +1,28 @@
+name: Upload Sources to S3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'sample-sources.yaml'
+  workflow_dispatch:
+
+jobs:
+  upload-sources:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::938744740083:role/McpToolCrawlerGitHubActionRole
+          aws-region: 'us-west-2'
+
+      - name: Upload sources to S3
+        run: |
+          aws s3 cp sample-sources.yaml s3://mcpdummystack-mcptoolcrawlerbucket79188e62-n40jilnp0est/sources.yaml
+          echo "Sources uploaded successfully to S3"
