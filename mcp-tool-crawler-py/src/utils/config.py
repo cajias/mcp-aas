@@ -25,6 +25,9 @@ DYNAMODB_SOURCES_TABLE = os.getenv('DYNAMODB_SOURCES_TABLE', 'mcp-sources')
 DYNAMODB_CRAWLERS_TABLE = os.getenv('DYNAMODB_CRAWLERS_TABLE', 'mcp-crawlers')
 DYNAMODB_CRAWL_RESULTS_TABLE = os.getenv('DYNAMODB_CRAWL_RESULTS_TABLE', 'mcp-crawl-results')
 
+# S3 Source List Configuration
+S3_SOURCE_LIST_KEY = os.getenv('S3_SOURCE_LIST_KEY', 'sources.csv')
+
 # OpenAI Configuration
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4')
@@ -45,6 +48,7 @@ PREDEFINED_SOURCES = {
     "awesome_lists": [
         "https://github.com/jpmcb/awesome-machine-context-protocol",
         "https://github.com/continuedev/awesome-continue",
+        "https://github.com/wong2/awesome-mcp-servers",
     ],
     "websites": [
         {
@@ -69,6 +73,7 @@ def get_config() -> Dict[str, Any]:
             "s3": {
                 "bucket_name": S3_BUCKET_NAME,
                 "tool_catalog_key": "tools.json",
+                "source_list_key": S3_SOURCE_LIST_KEY,
             },
         },
         "openai": {

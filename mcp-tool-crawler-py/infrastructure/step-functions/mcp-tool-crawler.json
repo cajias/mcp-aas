@@ -5,6 +5,11 @@
     "InitializeSources": {
       "Type": "Task",
       "Resource": "${SourceInitializerFunction}",
+      "Comment": "Initialize sources from S3 sources.csv or from configuration",
+      "Parameters": {
+        "s3BucketName.$": "$.s3BucketName",
+        "s3SourceListKey.$": "$.s3SourceListKey"
+      },
       "Next": "GetSourcesToCrawl"
     },
     "GetSourcesToCrawl": {

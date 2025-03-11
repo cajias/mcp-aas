@@ -2,6 +2,46 @@
 
 A Python-based service for discovering, crawling, and cataloging Machine Context Protocol (MCP) tools from various sources. The crawler leverages AWS Step Functions and AI-powered code generation to automatically extract MCP tools from diverse sources.
 
+## Source List Management
+
+Sources to crawl are managed in a CSV file (`sample-sources.csv`) which is uploaded to S3 when changes are pushed to GitHub.
+
+### CSV Format
+
+The source list CSV has the following format:
+
+```
+url,name,type
+https://github.com/user/awesome-repo,Awesome Repository,github_awesome_list
+```
+
+Fields:
+- `url`: The URL of the source to crawl (required)
+- `name`: A friendly name for the source (optional, will be auto-generated if not provided)
+- `type`: The source type (optional, will be auto-detected if not provided):
+  - `github_awesome_list`: GitHub awesome list
+  - `github_repository`: GitHub repository
+  - `website`: Generic website
+  - `rss_feed`: RSS feed
+  - `manually_added`: Manually added source
+
+### Workflow
+
+1. Edit the `sample-sources.csv` file with the sources you want to crawl
+2. Commit and push the changes to the `main` branch
+3. GitHub Actions workflow will upload the file to S3
+4. S3 event will trigger the Step Function
+5. Step Function will process the sources and discover tools
+
+## GitHub Actions Setup
+
+To enable the GitHub Actions workflow for uploading the source list:
+
+1. Add the following secrets to your GitHub repository:
+   - `AWS_ACCESS_KEY_ID`: AWS access key ID
+   - `AWS_SECRET_ACCESS_KEY`: AWS secret access key
+   - `S3_BUCKET_NAME`: Name of the S3 bucket to store the source list
+
 ## Project Overview
 
 The MCP Tool Crawler aims to build a comprehensive catalog of Machine Context Protocol (MCP) tools by automatically discovering and extracting information from various sources including GitHub repositories, awesome lists, and websites.
