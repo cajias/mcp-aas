@@ -1,0 +1,167 @@
+{
+  "Comment": "MCP Tool Crawler Workflow",
+  "StartAt": "InitializeSources",
+  "States": {
+    "InitializeSources": {
+      "Type": "Task",
+      "Resource": "${SourceInitializerFunction}",
+      "Next": "GetSourcesToCrawl"
+    },
+    "GetSourcesToCrawl": {
+      "Type": "Task",
+      "Resource": "${SourcesFunction}",
+      "Parameters": {
+        "timeThreshold.$": "$.timeThreshold"
+      },
+      "ResultPath": "$.sources",
+      "Next": "CheckSourcesExist"
+    },
+    "CheckSourcesExist": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.sources",
+          "IsPresent": true,
+          "Next": "MapSourcesToProcess"
+        }
+      ],
+      "Default": "NoSourcesToProcess"
+    },
+    "NoSourcesToProcess": {
+      "Type": "Pass",
+      "Result": {
+        "status": "success",
+        "message": "No sources to crawl"
+      },
+      "End": true
+    },
+    "MapSourcesToProcess": {
+      "Type": "Map",
+      "ItemsPath": "$.sources",
+      "MaxConcurrency": 5,
+      "Iterator": {
+        "StartAt": "CheckCrawlerStrategy",
+        "States": {
+          "CheckCrawlerStrategy": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.hasKnownCrawler",
+                "BooleanEquals": true,
+                "Next": "RunKnownCrawler"
+              }
+            ],
+            "Default": "GenerateCrawlerStrategy"
+          },
+          "GenerateCrawlerStrategy": {
+            "Type": "Task",
+            "Comment": "TODO: This is where AI generates a crawler for unknown sources",
+            "Resource": "${CrawlerGeneratorFunction}",
+            "Parameters": {
+              "source.$": "$"
+            },
+            "ResultPath": "$.crawlerStrategy",
+            "Next": "SaveCrawlerStrategy"
+          },
+          "SaveCrawlerStrategy": {
+            "Type": "Task",
+            "Resource": "${SaveCrawlerStrategyFunction}",
+            "Parameters": {
+              "source.$": "$",
+              "crawlerStrategy.$": "$.crawlerStrategy"
+            },
+            "Next": "RunGeneratedCrawler"
+          },
+          "RunGeneratedCrawler": {
+            "Type": "Task",
+            "Resource": "${RunGeneratedCrawlerFunction}",
+            "Parameters": {
+              "source.$": "$",
+              "crawlerStrategy.$": "$.crawlerStrategy"
+            },
+            "ResultPath": "$.crawlResult",
+            "Retry": [
+              {
+                "ErrorEquals": ["States.ALL"],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 2,
+                "BackoffRate": 2
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": ["States.ALL"],
+                "ResultPath": "$.error",
+                "Next": "RecordCrawlFailure"
+              }
+            ],
+            "Next": "RecordCrawlSuccess"
+          },
+          "RunKnownCrawler": {
+            "Type": "Task",
+            "Resource": "${RunKnownCrawlerFunction}",
+            "Parameters": {
+              "source.$": "$"
+            },
+            "ResultPath": "$.crawlResult",
+            "Retry": [
+              {
+                "ErrorEquals": ["States.ALL"],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 2,
+                "BackoffRate": 2
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": ["States.ALL"],
+                "ResultPath": "$.error",
+                "Next": "RecordCrawlFailure" 
+              }
+            ],
+            "Next": "RecordCrawlSuccess"
+          },
+          "RecordCrawlSuccess": {
+            "Type": "Task",
+            "Resource": "${RecordCrawlResultFunction}",
+            "Parameters": {
+              "source.$": "$",
+              "crawlResult.$": "$.crawlResult",
+              "success": true
+            },
+            "End": true
+          },
+          "RecordCrawlFailure": {
+            "Type": "Task",
+            "Resource": "${RecordCrawlResultFunction}",
+            "Parameters": {
+              "source.$": "$",
+              "error.$": "$.error",
+              "success": false
+            },
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.crawlResults",
+      "Next": "ProcessCatalog"
+    },
+    "ProcessCatalog": {
+      "Type": "Task",
+      "Resource": "${ProcessCatalogFunction}",
+      "Parameters": {
+        "crawlResults.$": "$.crawlResults"
+      },
+      "Next": "NotifyCrawlComplete"
+    },
+    "NotifyCrawlComplete": {
+      "Type": "Task",
+      "Resource": "${NotificationFunction}",
+      "Parameters": {
+        "message": "MCP Tool Crawler completed",
+        "crawlResults.$": "$.crawlResults"
+      },
+      "End": true
+    }
+  }
+}
