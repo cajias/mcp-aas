@@ -26,7 +26,7 @@ DYNAMODB_CRAWLERS_TABLE = os.getenv('DYNAMODB_CRAWLERS_TABLE', 'mcp-crawlers')
 DYNAMODB_CRAWL_RESULTS_TABLE = os.getenv('DYNAMODB_CRAWL_RESULTS_TABLE', 'mcp-crawl-results')
 
 # S3 Source List Configuration
-S3_SOURCE_LIST_KEY = os.getenv('S3_SOURCE_LIST_KEY', 'sources.csv')
+S3_SOURCE_LIST_KEY = os.getenv('S3_SOURCE_LIST_KEY', 'sources.yaml')
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')

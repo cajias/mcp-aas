@@ -3,7 +3,7 @@ S3 storage services for MCP tools and sources.
 """
 
 import json
-import csv
+import yaml
 import boto3
 import io
 from typing import List, Dict, Any, Optional, Union
@@ -118,7 +118,7 @@ class S3SourceStorage:
     
     async def load_sources(self) -> List[Source]:
         """
-        Load sources from S3 CSV file.
+        Load sources from S3 YAML file.
         
         Returns:
             List of Source objects loaded from S3.
@@ -140,19 +140,19 @@ class S3SourceStorage:
                 Key=self.key
             )
             
-            # Parse CSV
+            # Parse YAML
             content = response['Body'].read().decode('utf-8')
-            csv_file = io.StringIO(content)
-            reader = csv.DictReader(csv_file)
+            data = yaml.safe_load(content)
+            sources_data = data.get('sources', [])
             
             sources = []
-            for row in reader:
-                url = row.get('url', '').strip()
+            for item in sources_data:
+                url = item.get('url', '').strip()
                 if not url:
                     continue
                 
-                name = row.get('name', '').strip()
-                source_type_str = row.get('type', '').strip().lower()
+                name = item.get('name', '').strip()
+                source_type_str = item.get('type', '').strip().lower()
                 
                 # Determine source type
                 if source_type_str:

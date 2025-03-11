@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'sample-sources.csv'
+      - 'sample-sources.yaml'
   workflow_dispatch:
 
 jobs:
@@ -28,5 +28,5 @@ jobs:
 
       - name: Upload sources to S3
         run: |
-          aws s3 cp sample-sources.csv s3://${{ secrets.S3_BUCKET_NAME }}/sources.csv
+          aws s3 cp sample-sources.yaml s3://${{ secrets.S3_BUCKET_NAME }}/sources.yaml
           echo "Sources uploaded successfully to S3"
