@@ -13,13 +13,26 @@ import * as fs from 'fs';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 
 export class ToolCrawlerStack extends cdk.Stack {
-  public readonly sourceBucket: s3.Bucket;
   public readonly sourceListKey: string = 'sources.yaml';
   public readonly toolCatalogKey: string = 'tools.json';
   public readonly stateMachine: sfn.StateMachine;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // Import Lambda layer from the package layer stack
+    const lambdaLayer = lambda.LayerVersion.fromLayerVersionArn(
+      this,
+      'ImportedLambdaLayer',
+      cdk.Fn.importValue('ToolCrawlerDepsLayerArn')
+    );
+    
+    // Import S3 bucket from the dummy stack
+    const sourceBucket = s3.Bucket.fromBucketName(
+      this, 
+      'ImportedSourceBucket', 
+      'mcpdummystack-mcptoolcrawlerbucket79188e62-n40jilnp0est'
+    );
 
     // Create DynamoDB Tables
     const sourcesTable = new dynamodb.Table(this, 'SourcesTable', {
@@ -41,13 +54,6 @@ export class ToolCrawlerStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
     });
 
-    // Create S3 bucket for source lists and tool catalog
-    this.sourceBucket = new s3.Bucket(this, 'McpToolCrawlerBucket', {
-      versioned: true,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
-      autoDeleteObjects: true, // NOT recommended for production
-    });
-
     // Create Lambda execution role
     const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
@@ -57,7 +63,7 @@ export class ToolCrawlerStack extends cdk.Stack {
     });
 
     // Grant Lambda access to S3 and DynamoDB
-    this.sourceBucket.grantReadWrite(lambdaExecutionRole);
+    sourceBucket.grantReadWrite(lambdaExecutionRole);
     sourcesTable.grantReadWriteData(lambdaExecutionRole);
     crawlersTable.grantReadWriteData(lambdaExecutionRole);
     crawlResultsTable.grantReadWriteData(lambdaExecutionRole);
@@ -72,7 +78,7 @@ export class ToolCrawlerStack extends cdk.Stack {
 
     // Environment variables for Lambda functions
     const lambdaEnv = {
-      S3_BUCKET_NAME: this.sourceBucket.bucketName,
+      S3_BUCKET_NAME: sourceBucket.bucketName,
       S3_SOURCE_LIST_KEY: this.sourceListKey,
       DYNAMODB_SOURCES_TABLE: sourcesTable.tableName,
       DYNAMODB_CRAWLERS_TABLE: crawlersTable.tableName,
@@ -83,22 +89,22 @@ export class ToolCrawlerStack extends cdk.Stack {
     // Create Lambda functions for the workflow
     const sourceInitializerFunction = new lambda.Function(this, 'SourceInitializerFunction', {
       runtime: lambda.Runtime.PYTHON_3_9,
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../../mcp-tool-crawler-py/src/lambda_functions')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../../mcp-tool-crawler-py/src/lambda_functions/lambda-package')),
       handler: 'source_initializer.handler',
       environment: lambdaEnv,
       role: lambdaExecutionRole,
       timeout: cdk.Duration.seconds(30),
-      layers: [toolCrawlerLayer],
+      layers: [lambdaLayer],
     });
 
     const sourcesFunction = new lambda.Function(this, 'SourcesFunction', {
       runtime: lambda.Runtime.PYTHON_3_9,
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../../mcp-tool-crawler-py/src/lambda_functions')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../../mcp-tool-crawler-py/src/lambda_functions/lambda-package')),
       handler: 'sources.handler',
       environment: lambdaEnv,
       role: lambdaExecutionRole,
       timeout: cdk.Duration.seconds(30),
-      layers: [toolCrawlerLayer],
+      layers: [lambdaLayer],
     });
 
     const crawlerGeneratorFunction = new lambda.Function(this, 'CrawlerGeneratorFunction', {
@@ -171,24 +177,7 @@ export class ToolCrawlerStack extends cdk.Stack {
       layers: [toolCrawlerLayer],
     });
 
-    // Create the S3 event source for triggering the Step Function
-    const s3EventHandler = new lambda.Function(this, 'S3EventHandler', {
-      runtime: lambda.Runtime.PYTHON_3_9,
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../../mcp-tool-crawler-py/src/lambda_functions')),
-      handler: 's3_event_handler.handler',
-      environment: {
-        ...lambdaEnv,
-        STATE_MACHINE_ARN: 'TO_BE_UPDATED',  // Will be updated after Step Function creation
-      },
-      role: lambdaExecutionRole,
-      timeout: cdk.Duration.seconds(30),
-    });
-
-    // Add S3 event source to the Lambda function
-    s3EventHandler.addEventSource(new eventsources.S3EventSource(this.sourceBucket, {
-      events: [s3.EventType.OBJECT_CREATED],
-      filters: [{ prefix: this.sourceListKey }],
-    }));
+    // S3 event handler will be in a separate stack
 
     // Create Step Function definition
     // Create Step Function state machine role
@@ -330,18 +319,13 @@ export class ToolCrawlerStack extends cdk.Stack {
       role: stateMachineRole,
     });
 
-    // Update the S3 event handler to know about the state machine ARN
-    s3EventHandler.addEnvironment('STATE_MACHINE_ARN', this.stateMachine.stateMachineArn);
-
-    // Grant permission to the S3 event handler to start the step function execution
-    this.stateMachine.grantStartExecution(s3EventHandler);
-
-    // CloudFormation outputs
-    new cdk.CfnOutput(this, 'SourceBucketName', {
-      value: this.sourceBucket.bucketName,
-      description: 'S3 Bucket for source lists and tool catalog',
+    // Export the state machine ARN for the event handler stack
+    new cdk.CfnOutput(this, 'StateMachineArnExport', {
+      value: this.stateMachine.stateMachineArn,
+      exportName: 'McpToolCrawlerStateMachineArn',
     });
 
+    // CloudFormation outputs
     new cdk.CfnOutput(this, 'StateMachineArn', {
       value: this.stateMachine.stateMachineArn,
       description: 'Tool Crawler Step Function ARN',
